@@ -23,14 +23,20 @@ export default function CategorySelection() {
 
   return (
     <main className="min-h-screen bg-purple-950 flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      {/* Deep Space Background */}
-      <div className="fixed inset-0 z-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-900/40 via-purple-950 to-black pointer-events-none" />
-      
-      {/* Grid Floor */}
-      <div className="fixed bottom-0 left-0 w-full h-[40vh] z-10 pointer-events-none opacity-20" 
-           style={{ backgroundImage: 'linear-gradient(rgba(34, 211, 238, 0.3) 1px, transparent 1px)', backgroundSize: '100% 40px' }}></div>
+      {/* BACKGROUND IMAGE */}
+      <div 
+        className="fixed inset-0 z-0 pointer-events-none"
+        style={{
+          backgroundImage: 'url(/quizzard_bg.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          filter: 'blur(5px)'
+        }}
+      />
 
-      <div className="z-20 w-full max-w-2xl flex flex-col items-center gap-12">
+      {/* Glassmorphism Container */}
+      <div className="z-20 w-full max-w-5xl flex flex-col items-center gap-12 backdrop-blur-md bg-black/40 border-2 border-white/20 rounded-2xl p-8 md:p-12 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
         
         {/* Header */}
         <div className="text-center">
@@ -48,14 +54,17 @@ export default function CategorySelection() {
             <button
               key={cat.name}
               onClick={() => handleSelect(cat.name)}
-              className={`${pressStart2P.className} ${cat.color} ${cat.hover} hover:text-black bg-black/80 border-4 p-8 md:p-12 text-lg md:text-xl transition-all duration-200 transform hover:scale-105`}
+              className={`${pressStart2P.className} ${cat.color} ${cat.hover} hover:text-black backdrop-blur-sm bg-black/60 border-4 p-8 md:p-12 text-lg md:text-xl transition-all duration-200 transform hover:scale-105`}
             >
               {cat.name}
             </button>
           ))}
         </div>
 
+     
       </div>
     </main>
   );
 }
+
+              
