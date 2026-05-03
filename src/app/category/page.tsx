@@ -1,10 +1,11 @@
 "use client";
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Press_Start_2P } from 'next/font/google';
+import { Suspense } from 'react';
 
 const pressStart2P = Press_Start_2P({ subsets: ["latin"], weight: ["400"] });
 
-export default function CategorySelection() {
+function CategorySelection() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const username = searchParams.get('user') || "PLAYER_1";
@@ -22,7 +23,7 @@ export default function CategorySelection() {
   };
 
   return (
-    <main className="min-h-screen bg-purple-950 flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    <main className="min-h-screen bg-purple-950 flex flex-col items-center justify-center pt-6 pb-6 px-6 relative overflow-hidden">
       {/* BACKGROUND IMAGE */}
       <div 
         className="fixed inset-0 z-0 pointer-events-none"
@@ -64,6 +65,14 @@ export default function CategorySelection() {
      
       </div>
     </main>
+  );
+}
+
+export default function CategoryPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-purple-950 flex items-center justify-center"><p className="text-white">Loading...</p></div>}>
+      <CategorySelection />
+    </Suspense>
   );
 }
 
