@@ -38,7 +38,8 @@ function GameBoard() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
-  const [timeLeft, setTimeLeft] = useState(15);
+  const [timeLeft, setTimeLeft] = useState(180); // 3 minutes in seconds
+  const [globalTimeLeft, setGlobalTimeLeft] = useState(180); // Global 3-minute timer
   const [gameState, setGameState] = useState<"PLAYING" | "GAME_OVER" | "CONGRATULATIONS" | "CHOOSING_POWERUP">("PLAYING");
   const [hasSaved, setHasSaved] = useState(false);
   
@@ -71,13 +72,16 @@ function GameBoard() {
   // --- 1. DATA FETCHING (40 QUESTIONS) ---
   useEffect(() => {
     async function fetchQuestions() {
-      const { data, error } = await supabase.from('questions').select('*').eq('category', category).limit(40);
+      // Fetch more questions to ensure variety, then randomize and take 40
+      const { data, error } = await supabase.from('questions').select('*').eq('category', category);
       if (error) console.error("Database error:", error);
 
       if (data && data.length > 0) {
         // Use Fisher-Yates shuffle for proper randomization
         const shuffled = fisherYatesShuffle(data);
-        setQuestions(shuffled);
+        // Take first 25 questions from shuffled array
+        const selectedQuestions = shuffled.slice(0, 25);
+        setQuestions(selectedQuestions);
       } else {
         setQuestions([{ category: "SYSTEM", question_text: "NO DATA FOUND IN MAINFRAME", type: "mcq", options: ["A", "B", "C", "D"], correct_idx: 0 }]);
       }
@@ -139,49 +143,33 @@ function GameBoard() {
 
   // --- 3. GAME LOGIC ---
   const nextQuestion = useCallback(() => {
-    // Check for win condition first (1020 points = 34 correct answers)
-    if (score >= 1020) {
+    // Check for win condition first (1000 points = 20 correct answers)
+    if (score >= 1000) {
       setGameState("CONGRATULATIONS");
       return;
     }
 
-    // Check if reached 40th question
-    if (currentQuestionIndex + 1 >= 40) {
-      // Fetch new set of 40 questions
-      fetchNewQuestionSet();
+    // Check if reached 25th question - end game
+    if (currentQuestionIndex + 1 >= 25) {
+      setGameState("GAME_OVER");
       return;
     }
 
     // Move to next question
     setCurrentQuestionIndex((prev) => prev + 1);
-    setTimeLeft(15); 
+    setTimeLeft(15); // Reset per-question timer to 15 seconds 
     setTextInput(""); 
     setEliminatedOptions([]); // Reset 50/50
     setIsTimeFrozen(false);   // Reset Freeze
   }, [currentQuestionIndex, score]);
 
-  // --- FETCH NEW QUESTION SET ---
-  const fetchNewQuestionSet = useCallback(async () => {
-    const { data, error } = await supabase.from('questions').select('*').eq('category', category).limit(40);
-    if (error) console.error("Database error:", error);
-
-    if (data && data.length > 0) {
-      const shuffled = fisherYatesShuffle(data);
-      setQuestions(shuffled);
-      setCurrentQuestionIndex(0);
-      setTimeLeft(15);
-      setTextInput("");
-      setEliminatedOptions([]);
-      setIsTimeFrozen(false);
-    }
-  }, [category]);
 
   const handleCorrectAnswer = useCallback(() => {
     playSFX('CorrectAnswer.mp3');
     setScore((prev) => {
-      const newScore = prev + 30;
-      // Check for congratulations condition (1020 points = 34 correct answers)
-      if (newScore >= 1020) {
+      const newScore = prev + 50;
+      // Check for congratulations condition (1000 points = 20 correct answers)
+      if (newScore >= 1000) {
         setGameState("CONGRATULATIONS");
       }
       return newScore;
@@ -202,22 +190,12 @@ function GameBoard() {
     setTextInput(""); 
     setStreak(0); // Lose streak!
     
-    // Deduct life and check for game over
-    setLives((prev: number) => {
-      const newLives = prev - 1;
-      if (newLives <= 0) {
-        playSFX('GameOver.mp3');
-        setGameState("GAME_OVER");
-        return 0;
-      }
-      return newLives;
-    });
+    // Deduct life but don't end game
+    setLives((prev: number) => Math.max(prev - 1, 0));
     
-    // Only move to next question if still alive
-    if (lives > 1) {
-      nextQuestion();
-    }
-  }, [lives, nextQuestion]);
+    // Always move to next question
+    nextQuestion();
+  }, [nextQuestion]);
 
   const handleMcqAnswer = useCallback((selectedIndex: number) => {
     if (gameState !== "PLAYING" || isLoading) return;
@@ -327,9 +305,22 @@ function GameBoard() {
 
   const totalPages = Math.ceil(totalCount / itemsPerPage);
 
-  // --- 6. TIMER LOGIC ---
+  // --- 5. GLOBAL TIMER LOGIC ---
   useEffect(() => {
-    if (gameState !== "PLAYING" || isLoading || questions.length === 0 || isTimeFrozen) return;
+    if (gameState !== "PLAYING" || isLoading) return;
+    
+    if (globalTimeLeft <= 0) {
+      setGameState("GAME_OVER");
+      return;
+    }
+    
+    const timer = setInterval(() => setGlobalTimeLeft((prev) => prev - 1), 1000);
+    return () => clearInterval(timer);
+  }, [globalTimeLeft, gameState, isLoading]);
+
+  // --- 6. PER-QUESTION TIMER LOGIC ---
+  useEffect(() => {
+    if (gameState !== "PLAYING" || isLoading) return;
     if (questions[currentQuestionIndex]?.type === '4pics') return;
 
     if (timeLeft <= 0) {
@@ -350,6 +341,8 @@ function GameBoard() {
   }
 
   const currentQuestion = questions[currentQuestionIndex];
+  const globalTimerMinutes = Math.floor(globalTimeLeft / 60);
+  const globalTimerSeconds = globalTimeLeft % 60;
   const timerPercentage = (timeLeft / 15) * 100;
   let timerColor = "bg-cyan-400 shadow-[0_0_10px_#22d3ee]";
   if (isTimeFrozen) timerColor = "bg-blue-300 shadow-[0_0_15px_#93c5fd] animate-pulse";
@@ -364,11 +357,12 @@ function GameBoard() {
         <div className={`${pressStart2P.className} text-[10px] sm:text-xs text-cyan-400 space-y-2`}>
           <p>USER: <span className="text-white">{username}</span></p>
           <p>SCORE: <span className="text-green-400">{score}</span> <span className="text-yellow-400 ml-4 animate-pulse">STREAK: {streak}🔥</span></p>
+          <p>TIME: <span className={`${globalTimeLeft <= 30 ? 'text-red-400 animate-pulse' : 'text-white'}`}>{globalTimerMinutes}:{globalTimerSeconds.toString().padStart(2, '0')}</span></p>
         </div>
-        <div className="flex gap-2 text-2xl font-black">
-          {[1, 2, 3].map((num) => (
-            <span key={num} className={`${lives < num ? "text-red-500 drop-shadow-[0_0_8px_#ef4444]" : "text-slate-700"} transition-colors`}>❤</span>
-          ))}
+        <div className="text-2xl font-black">
+          <span className="text-cyan-400 drop-shadow-[0_0_8px_#22d3ee]">
+            {currentQuestionIndex + 1}/25
+          </span>
         </div>
       </div>
 
@@ -427,7 +421,7 @@ function GameBoard() {
           
           <div className="backdrop-blur-md bg-black/40 border-2 border-white/20 rounded-2xl p-10 text-center flex flex-col items-center gap-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)] relative z-10">
             <h1 className={`${pressStart2P.className} text-4xl sm:text-5xl ${gameState === "CONGRATULATIONS" ? "text-green-400 animate-pulse" : "text-red-500"}`}>
-              {gameState === "CONGRATULATIONS" ? "CONGRATULATIONS! 1020 POINTS!" : "GAME OVER"}
+              {gameState === "CONGRATULATIONS" ? "CONGRATULATIONS! 1000 POINTS!" : "GAME OVER"}
             </h1>
             <p className={`${pressStart2P.className} text-white text-sm mt-4`}>FINAL SCORE: {score}</p>
             <div className="flex gap-4 mt-4">
