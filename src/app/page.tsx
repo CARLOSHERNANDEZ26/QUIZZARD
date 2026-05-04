@@ -69,7 +69,7 @@ export default function Home() {
     }
     
     // The code to access category page
-    if (code === "QUIZ2026") {
+    if (code.toUpperCase() === "EXPO2026") {
       setShowCodeModal(false);
       setCode("");
       setUsername("");

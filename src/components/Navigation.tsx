@@ -301,7 +301,7 @@ export default function Navigation({ onBackgroundToggle, isBackgroundOn }: Navig
               <div className={`${pressStart2P.className} text-sm space-y-3`}>
                 <div className="border-l-4 border-orange-400 pl-4">
                   <p className="text-orange-300 font-bold">Q: How do I start playing?</p>
-                  <p className="text-white/70 mt-1">A: Click PLAY on the main menu, enter your name and access code "QUIZ2026".</p>
+                  <p className="text-white/70 mt-1">A: Click PLAY on the main menu, enter your name and access code "EXPO2026".</p>
                 </div>
                 
                 <div className="border-l-4 border-orange-400 pl-4">
