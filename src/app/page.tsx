@@ -86,11 +86,11 @@ export default function Home() {
       <div 
         className="fixed inset-0 z-0 pointer-events-none"
         style={{
-          backgroundImage: 'url(/quizzard_bg.jpg)',
+          backgroundImage: 'url(/quizzard_bg.png)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          filter: 'blur(5px)'
+         
         }}
       />
 
